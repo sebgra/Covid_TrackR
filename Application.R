@@ -3,6 +3,7 @@ rm(list = ls())
 if (interactive()){
 
 library(dplyr)
+library(tidyr)
 library(shiny)
 library(shinythemes)
 library(ggplot2)
@@ -43,15 +44,24 @@ df <- df %>% mutate(location = recode(str_trim(location), "United States" = "USA
 df_mobility <- read.csv('data_mobility.csv', header = TRUE, sep  =',')
 df_mobility$date <- ymd(as.character(df_mobility$date))
 
+df_market <- df_mobility%>%complete(country_region,date)%>%group_by(country_region,date, .drop=F)%>%summarise(transit_stations_percent_change_from_baseline_smoothed = mean(transit_stations_percent_change_from_baseline, na.rm =T),
+workplaces_percent_change_from_baseline_smoothed = mean(workplaces_percent_change_from_baseline, na.rm = T),
+residential_percent_change_from_baseline_smoothed = mean(residential_percent_change_from_baseline, na.rm = T),
+parks_percent_change_from_baseline_smoothed = mean(parks_percent_change_from_baseline, na.rm = T),
+grocery_and_pharmacy_percent_change_from_baseline_smoothed = mean(grocery_and_pharmacy_percent_change_from_baseline, na.rm = T),
+retail_and_recreation_percent_change_from_baseline_smoothed = mean(retail_and_recreation_percent_change_from_baseline, na.rm = T))%>%as.data.frame() # .drp= F to avoid empty groups
+
+df_market$date <- ymd(as.character(df_market$date))
+colnames(df_market)[1] <- "location"
+colnames(df_market)[2] <- "dates"
+
 world_map <- map_data("world")
 colnames(world_map)[5] <- "location"
 
 
 df_histo <- df%>%group_by(location) %>% mutate(new_cases_variation = new_cases - lead(new_cases))
 
-#df_map <- inner_join(df%>%filter(dates == input$Map_Date_Selection), world_map, by = "location") # TO CORRECT
-
-#input$Map_Date_Selection
+#
 
 ##############################################################################################
 ##############################################################################################
@@ -70,10 +80,10 @@ ui <- fluidPage(theme = shinytheme("slate"),
 
       # Input: Select the random distribution type ----
       radioButtons("dist", "Distribution type:",
-                   c("Normal" = "norm",
-                     "Uniform" = "unif",
-                     "Log-normal" = "lnorm",
-                     "Exponential" = "exp")),
+                    c("Normal" = "norm",
+                    "Uniform" = "unif",
+                    "Log-normal" = "lnorm",
+                    "Exponential" = "exp")),
       sliderInput('Date_selection',label = 'Date Selection', min = min(df$dates), max = max(df$dates), value = c(min(df$dates), max(df$dates))),
       # br() element to introduce extra vertical spacing ----
       br(),
@@ -85,9 +95,23 @@ ui <- fluidPage(theme = shinytheme("slate"),
                   min = min(df$dates), max = max(df$dates)),
       
       pickerInput(
-        inputId = "myPicker",
+        inputId = "myPicker", # TODO :Change Name
         label = "Country Selection",
         choices = df%>%select(location)%>%unique()%>%c(),#%>%sapply(levels),
+        selected = "France",
+        options = list(
+          `actions-box` = TRUE,
+          size = 10,
+          `selected-text-format` = "count > 4"
+        ),
+        multiple = TRUE
+),
+
+      pickerInput(
+        inputId = "myPicker_bis", # TODO :Change Name
+        label = "Country Selection for dynamics data",
+        choices = df_market%>%select(location)%>%unique()%>%c()%>%sapply(levels),
+        selected = "France",
         options = list(
           `actions-box` = TRUE,
           size = 10,
@@ -107,7 +131,8 @@ ui <- fluidPage(theme = shinytheme("slate"),
       tabsetPanel(type = "tabs",
                   tabPanel('Mortality', plotlyOutput(("Mortality_graph")), plotlyOutput("New_death_cases"), plotlyOutput("Transport"), plotlyOutput("daily_cases")), # TO MODIFY
                   tabPanel("Map", plotlyOutput("New_cases_map")),
-                  tabPanel("Not Used Yet", plotlyOutput("test")),
+                  tabPanel("Population Dynamics", plotlyOutput("dynamics"),plotlyOutput("Dynamics_map")),
+                  tabPanel("Not Used Yet"),
                   tabPanel("Table",  DT::dataTableOutput('Full_Data'))
       )
 
@@ -129,9 +154,13 @@ output$New_cases_map <- renderPlotly((ggplotly(ggplot(inner_join(df%>%filter(dat
   geom_polygon(aes(fill = new_cases_per_million ), color = "gray")+ scale_fill_gradientn(colours = c("#FBFCFC","#ffba08","#faa307","#f48c06","#e85d04","#dc2f02","#d00000","#9d0208","#6a040f","#370617","#03071e"),
                        breaks=c(0,0.5,5.0,10,50,100,250,500,1000,Inf),
                        na.value = "gray"))))
-output$daily_cases <- renderPlotly(ggplotly((ggplot(df_histo%>%filter(location == 'World')%>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = new_cases_smoothed, fill = new_cases_variation)) + geom_bar(stat='identity') + scale_fill_gradient2(low="green", mid = "yellow", high="red") + geom_point(aes(x = dates, y = new_cases)) + scale_shape(solid = FALSE, name = "Raw Data") + ggtitle('Daily Cases due to Covid19') 
-# output$test <- renderPlotly(ggplotly((ggplot(df_mobility %>% filter(location == input$myPicker)%>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = date, y = transit_station_percent_change_from_baseline) + geom_line))))
-)))
+output$daily_cases <- renderPlotly(ggplotly((ggplot(df_histo%>%filter(location == 'World')%>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = new_cases_smoothed, fill = new_cases_variation)) + geom_bar(stat='identity') + scale_fill_gradient2(low="green", mid = "yellow", high="red") + geom_point(aes(x = dates, y = new_cases)) + scale_shape(solid = FALSE, name = "Raw Data") + ggtitle('Daily Cases due to Covid19'))))
+output$dynamics <- renderPlotly(ggplotly((ggplot(df_market %>% filter(location == input$myPicker_bis)%>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = transit_stations_percent_change_from_baseline_smoothed,group = location, color = location)) + geom_line() + ggtitle('Transit stations: How did the number of visitors change since the beginning of the pandemic?')))) # TO correct, group_by country
+
+output$Dynamics_map <- renderPlotly((ggplotly(ggplot(full_join(df_market%>%filter(dates == input$Map_Date_Selection), world_map, by = "location"), aes(long, lat, group = group))+
+  geom_polygon(aes(fill = transit_stations_percent_change_from_baseline_smoothed ), color = "gray")+ scale_fill_gradientn(colours = c("#FBFCFC","#ffba08","#faa307","#f48c06","#e85d04","#dc2f02","#d00000","#9d0208","#6a040f","#370617","#03071e"),
+                       breaks=c(0,0.5,5.0,10,50,100,250,500,1000,Inf),
+                       na.value = "blue"))))
 
 }
 
