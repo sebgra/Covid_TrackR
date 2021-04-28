@@ -95,7 +95,7 @@ ui <- fluidPage(theme = shinytheme("slate"),
                   min = min(df$dates), max = max(df$dates)),
       
       pickerInput(
-        inputId = "myPicker", # TODO :Change Name
+        inputId = "country_picker", # TODO :Change Name
         label = "Country Selection",
         choices = df%>%select(location)%>%unique()%>%c(),#%>%sapply(levels),
         selected = "France",
@@ -108,7 +108,7 @@ ui <- fluidPage(theme = shinytheme("slate"),
 ),
 
       pickerInput(
-        inputId = "myPicker_bis", # TODO :Change Name
+        inputId = "country_picker_2", # TODO :Change Name
         label = "Country Selection for dynamics data",
         choices = df_market%>%select(location)%>%unique()%>%c()%>%sapply(levels),
         selected = "France",
@@ -118,18 +118,14 @@ ui <- fluidPage(theme = shinytheme("slate"),
           `selected-text-format` = "count > 4"
         ),
         multiple = TRUE
-)
-
-      # checkboxInput("countrySelection", df%>%select(location)%>%unique()%>%c() , value = FALSE, width = NULL)
-
-    ),
+)),
 
     # Main panel for displaying outputs ----
     mainPanel(
 
       # Output: Tabset w/ plot, summary, and table ----
       tabsetPanel(type = "tabs",
-                  tabPanel('Mortality', plotlyOutput(("Mortality_graph")), plotlyOutput("New_death_cases"), plotlyOutput("Transport"), plotlyOutput("daily_cases")), # TO MODIFY
+                  tabPanel('New_cases', plotlyOutput(("Total_cases")), plotlyOutput("Mortality_graph"),plotlyOutput('Total_deaths'), plotlyOutput('New_cases_pm'), plotlyOutput('New_deaths_pm'), plotlyOutput("daily_cases"), plotlyOutput('Reproduction_rate')), # TO MODIFY
                   tabPanel("Map", plotlyOutput("New_cases_map")),
                   tabPanel("Population Dynamics", plotlyOutput("dynamics"),plotlyOutput("Dynamics_map")),
                   tabPanel("Not Used Yet"),
@@ -145,17 +141,26 @@ server <- function(input, output) {
 
   # Generate an HTML table view of the data ----
 
- output$Full_Data <- DT::renderDataTable({DT::datatable(df)})
- output$Mortality_graph<- renderPlotly((ggplotly(ggplot(data = df%>%filter(location == input$myPicker)%>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes( x = dates, y = total_deaths,group = location, color = location)) + geom_line() + ggtitle('Total death case per date'))))
- output$New_death_cases <- renderPlotly((ggplotly(ggplot(data = df%>%filter(location == input$myPicker) %>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = new_cases_smoothed, group = location, color = location)) + geom_line() + ggtitle('Number of new cases - Rolling 7 days average'))))
- output$range <- renderPrint({ input$Date_selection })
+output$Full_Data <- DT::renderDataTable({DT::datatable(df)})
+output$New_cases <- renderPlotly((ggplotly(ggplot(data = df%>%filter(location == input$country_picker) %>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = new_cases_smoothed, group = location, color = location)) + geom_line() + ggtitle('Number of new  cases - Rolling 7 days average'))))
+output$Total_cases <- renderPlotly((ggplotly(ggplot(data = df%>%filter(location == input$country_picker) %>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = total_cases, group = location, color = location)) + geom_line() + ggtitle('Total cases'))))
+
+output$Mortality_graph<- renderPlotly((ggplotly(ggplot(data = df%>%filter(location == input$country_picker)%>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes( x = dates, y = new_deaths_smoothed,group = location, color = location)) + geom_line() + ggtitle('Number of new  death - Rolling 7 days average'))))
+output$Total_deaths <- renderPlotly((ggplotly(ggplot(data = df%>%filter(location == input$country_picker) %>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = total_deaths, group = location, color = location)) + geom_line() + ggtitle('Total deaths'))))
+
+output$New_cases_pm <- renderPlotly((ggplotly(ggplot(data = df%>%filter(location == input$country_picker) %>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = new_cases_smoothed_per_million, group = location, color = location)) + geom_line() + ggtitle('Number of new cases per million - Rolling 7 days average'))))
+output$New_deaths_pm <- renderPlotly((ggplotly(ggplot(data = df%>%filter(location == input$country_picker) %>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = new_deaths_smoothed_per_million, group = location, color = location)) + geom_line() + ggtitle('Number of new deaths per million - Rolling 7 days average'))))
+
+output$Reproduction_rate <- renderPlotly((ggplotly(ggplot(data = df%>%filter(location == input$country_picker) %>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = reproduction_rate, group = location, color = location)) + geom_line() + ggtitle('Reproduction rate over time'))))
+
 
 output$New_cases_map <- renderPlotly((ggplotly(ggplot(inner_join(df%>%filter(dates == input$Map_Date_Selection), world_map, by = "location"), aes(long, lat, group = group))+
   geom_polygon(aes(fill = new_cases_per_million ), color = "gray")+ scale_fill_gradientn(colours = c("#FBFCFC","#ffba08","#faa307","#f48c06","#e85d04","#dc2f02","#d00000","#9d0208","#6a040f","#370617","#03071e"),
                        breaks=c(0,0.5,5.0,10,50,100,250,500,1000,Inf),
                        na.value = "gray"))))
+
 output$daily_cases <- renderPlotly(ggplotly((ggplot(df_histo%>%filter(location == 'World')%>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = new_cases_smoothed, fill = new_cases_variation)) + geom_bar(stat='identity') + scale_fill_gradient2(low="green", mid = "yellow", high="red") + geom_point(aes(x = dates, y = new_cases)) + scale_shape(solid = FALSE, name = "Raw Data") + ggtitle('Daily Cases due to Covid19'))))
-output$dynamics <- renderPlotly(ggplotly((ggplot(df_market %>% filter(location == input$myPicker_bis)%>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = transit_stations_percent_change_from_baseline_smoothed,group = location, color = location)) + geom_line() + ggtitle('Transit stations: How did the number of visitors change since the beginning of the pandemic?')))) # TO correct, group_by country
+output$dynamics <- renderPlotly(ggplotly((ggplot(df_market %>% filter(location == input$country_picker_2)%>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = transit_stations_percent_change_from_baseline_smoothed,group = location, color = location)) + geom_line() + ggtitle('Transit stations: How did the number of visitors change since the beginning of the pandemic?')))) # TO correct, group_by country
 
 output$Dynamics_map <- renderPlotly((ggplotly(ggplot(full_join(df_market%>%filter(dates == input$Map_Date_Selection), world_map, by = "location"), aes(long, lat, group = group))+
   geom_polygon(aes(fill = transit_stations_percent_change_from_baseline_smoothed ), color = "gray")+ scale_fill_gradientn(colours = c("#FBFCFC","#ffba08","#faa307","#f48c06","#e85d04","#dc2f02","#d00000","#9d0208","#6a040f","#370617","#03071e"),
