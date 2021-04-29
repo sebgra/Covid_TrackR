@@ -80,10 +80,7 @@ ui <- fluidPage(theme = shinytheme("slate"),
 
       # Input: Select the random distribution type ----
       radioButtons("dist", "Distribution type:",
-                    c("Normal" = "norm",
-                    "Uniform" = "unif",
-                    "Log-normal" = "lnorm",
-                    "Exponential" = "exp")),
+                    c("new_cases_smoothed","reproduction_rate")),
       sliderInput('Date_selection',label = 'Date Selection', min = min(df$dates), max = max(df$dates), value = c(min(df$dates), max(df$dates))),
       # br() element to introduce extra vertical spacing ----
       br(),
@@ -142,8 +139,8 @@ server <- function(input, output) {
   # Generate an HTML table view of the data ----
 
 output$Full_Data <- DT::renderDataTable({DT::datatable(df)})
-output$New_cases <- renderPlotly((ggplotly(ggplot(data = df%>%filter(location == input$country_picker) %>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = new_cases_smoothed, group = location, color = location)) + geom_line() + ggtitle('Number of new  cases - Rolling 7 days average'))))
-output$Total_cases <- renderPlotly((ggplotly(ggplot(data = df%>%filter(location == input$country_picker) %>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = total_cases, group = location, color = location)) + geom_line() + ggtitle('Total cases'))))
+output$New_cases <- renderPlotly((ggplotly(ggplot(data = df%>%filter(location == input$country_picker) %>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = new_cases_smoothed , group = location, color = location)) + geom_line() + ggtitle('Number of new  cases - Rolling 7 days average'))))
+output$Total_cases <- renderPlotly((ggplotly(ggplot(data = df%>%filter(location == input$country_picker) %>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = total_cases, group = location, color = location)) + geom_line() + ggtitle('Total cases') + geom_line(aes(y=total_vaccinations),linetype ='dotdash'))))
 
 output$Mortality_graph<- renderPlotly((ggplotly(ggplot(data = df%>%filter(location == input$country_picker)%>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes( x = dates, y = new_deaths_smoothed,group = location, color = location)) + geom_line() + ggtitle('Number of new  death - Rolling 7 days average'))))
 output$Total_deaths <- renderPlotly((ggplotly(ggplot(data = df%>%filter(location == input$country_picker) %>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), aes(x = dates, y = total_deaths, group = location, color = location)) + geom_line() + ggtitle('Total deaths'))))
@@ -164,7 +161,7 @@ output$dynamics <- renderPlotly(ggplotly((ggplot(df_market %>% filter(location =
 
 output$Dynamics_map <- renderPlotly((ggplotly(ggplot(full_join(df_market%>%filter(dates == input$Map_Date_Selection), world_map, by = "location"), aes(long, lat, group = group))+
   geom_polygon(aes(fill = transit_stations_percent_change_from_baseline_smoothed ), color = "gray")+ scale_fill_gradientn(colours = c("#FBFCFC","#ffba08","#faa307","#f48c06","#e85d04","#dc2f02","#d00000","#9d0208","#6a040f","#370617","#03071e"),
-                       breaks=c(0,0.5,5.0,10,50,100,250,500,1000,Inf),
+                       breaks=c(-05,-25,-10,-5,0,5,10,25,50,Inf),
                        na.value = "blue"))))
 
 }
