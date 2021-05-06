@@ -1,0 +1,49 @@
+/* Get a fancy font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@200;300&display=swap');
+
+body {
+  background-color:#4c68acb3;
+  color: #d2cccc; /* text color */
+}
+
+/* Change header text to imported font */
+h2 {
+  font-family: 'Yusei Magic', sans-serif;
+  text-align:center;
+}
+
+/* Change header text to imported font */
+h3 {
+    font-family: 'Yusei Magic', sans-serif;
+    text-align:center;
+  }
+
+/* Make text visible on inputs */
+.shiny-input-container {
+  color: #000000;
+}
+
+.btn{
+
+    color : #76b5f6;
+}
+
+
+div.datatables{
+    color : #000000;
+}
+
+.nav {
+    margin-bottom: auto;
+    padding-left: 155px;
+    /* margin-left: auto; */
+    list-style: none;
+}
+
+.nav-tabs {
+    border-bottom: 1px solid #f3f3f300;
+}
+.dropup, .dropdown {
+    position: absolute;
+    left: 20px;
+}
