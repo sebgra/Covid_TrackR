@@ -1,0 +1,73 @@
+---
+date: "`r Sys.Date()`"
+
+always_allow_html: yes
+output: 
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    smart: false
+
+---
+
+<style type="text/css">
+.main-container {
+  max-width: 1800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
+
+
+<style type="text/css">
+
+h1.title {
+  font-size: 38px;
+  color: #001E7E;
+  text-align: center;
+}
+h4.author { /* Header 4 - and the author and data headers use this too  */
+    font-size: 18px;
+  font-family: "Times New Roman", Times, serif;
+  color: #001E7E;
+  text-align: center;
+}
+h4.date { /* Header 4 - and the author and data headers use this too  */
+  font-size: 18px;
+  font-family: "Times New Roman", Times, serif;
+  color: DarkBlue;
+  text-align: center;
+}
+</style>
+
+
+```{r, echo=FALSE, warning=FALSE}
+
+options(tinytex.verbose = TRUE)
+
+
+
+ggplotly(ggplot(data = df%>%filter(location == input$country_picker) %>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), 
+  aes_string(x = "dates", y = input$variable_selector , group = "location", color = "location")) 
+  + geom_line() + scale_y_log10() + ggtitle('Number of new  cases - Rolling 7 days average'))
+
+        ggplotly(ggplot(data = df%>%filter(location == input$country_picker) %>% filter(dates > input$Date_selection[1] & dates < input$Date_selection[2]), 
+  aes_string(x = "dates", y = input$variable_selector , group = "location", color = "location")) 
+  + geom_line()  + ggtitle('Number of new  cases - Rolling 7 days average'))
+
+
+   
+
+
+
+
+
+```
+<p style="page-break-after: always;">&nbsp;</p>
+<p style="page-break-before: always;">&nbsp;</p>
+
+
+# iAUC Outliers
+
+<center>
