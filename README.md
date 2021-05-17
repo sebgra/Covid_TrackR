@@ -32,8 +32,8 @@ install.packages("rmarkdown")
 
 ## Built With
 
-* [R](http://www.dropwizard.io/1.0.2/docs/) - The web framework used
-* [Shiny](https://maven.apache.org/) - Dependency Management
+* [R](https://www.r-project.org/) - The language used
+* [Shiny](https://shiny.rstudio.com/) - Dependency Management
 
 
 ## Authors
